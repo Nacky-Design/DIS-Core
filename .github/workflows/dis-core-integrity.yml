@@ -28,11 +28,16 @@ jobs:
           root=Path('.')
           mapping=json.loads((root/'PUBLIC-CORE-MANIFEST.json').read_text(encoding='utf-8'))
           assert len(mapping)>=80
+          mismatches=[]
           for name, expected in mapping.items():
               file=root/name
-              assert file.is_file(), name
+              if not file.is_file():
+                  mismatches.append(f"{name}: MISSING")
+                  continue
               actual=hashlib.sha256(file.read_bytes()).hexdigest()
-              assert actual==expected, f"{name}: expected={expected} actual={actual}"
+              if actual!=expected:
+                  mismatches.append(f"{name}: expected={expected} actual={actual}")
+          assert not mismatches, "Manifest errors:\\n" + "\\n".join(mismatches)
           result=validate_stage_registry(root, ORDER)
           assert result['allowed'], result
           files={p.as_posix():p.read_bytes() for p in root.rglob('*.md') if '.git' not in p.parts}
