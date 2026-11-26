@@ -1,0 +1,44 @@
+name: DIS Core integrity
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check-core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Check Python modules compile
+        run: python -m compileall -q tools/enforcement
+      - name: Check stage prompts, links, and SHA-256
+        run: |
+          python - <<'PYCODE'
+          import hashlib, json
+          from pathlib import Path
+          from tools.enforcement.dis_project_v2 import ORDER, compile_route
+          from tools.enforcement.stage_registry_v2 import validate_stage_registry
+          from tools.enforcement.public_core_link_audit import verify_local_links
+          root=Path('.')
+          mapping=json.loads((root/'PUBLIC-CORE-MANIFEST.json').read_text(encoding='utf-8'))
+          assert len(mapping)>=80
+          for name, expected in mapping.items():
+              file=root/name
+              assert file.is_file(), name
+              assert hashlib.sha256(file.read_bytes()).hexdigest()==expected, name
+          result=validate_stage_registry(root, ORDER)
+          assert result['allowed'], result
+          files={p.as_posix():p.read_bytes() for p in root.rglob('*.md') if '.git' not in p.parts}
+          links=verify_local_links(files)
+          assert links['allowed'], links
+          assert links['checked_links']>=180, links
+          for prefix in ('projects','pilots','decisions','audits'):
+              assert not (root/prefix).exists(), prefix
+          config={'strategy':'guided','scopes':{'research':'full_product','design':'hero_only','delivery':['concept']}}
+          assert compile_route(config)['allowed'] is True
+          print('DIS Core integrity: PASS; files',len(mapping),'links',links['checked_links'])
+          PYCODE

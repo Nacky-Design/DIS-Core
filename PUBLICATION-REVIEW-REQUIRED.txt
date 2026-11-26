@@ -1,0 +1,4 @@
+DIS Core Alpha pre-publication candidate. No .git history.
+Sanitized private client cases are replaced with generic patterns.
+No independently authenticated stage approval or native-tool gateway.
+Independent manual rights/privacy review of content is still required.
