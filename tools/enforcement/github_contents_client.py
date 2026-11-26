@@ -18,6 +18,8 @@ from urllib.request import Request, urlopen
 
 REPO_PATTERN = re.compile(r"^[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+$")
 PATH = ".dis/project-state.json"
+PILOT_MONITOR_PATH = ".dis/pilot-monitor.json"
+ALLOWED_FILES = {PATH, PILOT_MONITOR_PATH}
 
 
 class GitHubContentsClient:
@@ -30,8 +32,8 @@ class GitHubContentsClient:
     def _request(self, method, repository, path, *, branch, payload=None):
         if not isinstance(repository, str) or not REPO_PATTERN.fullmatch(repository):
             raise ValueError("invalid repository owner/name")
-        if path != PATH:
-            raise ValueError("only the DIS project state file is writable through this adapter")
+        if path not in ALLOWED_FILES:
+            raise ValueError("only the DIS project state and pilot monitor files are accessible")
         if not branch or not isinstance(branch, str) or ".." in branch:
             raise ValueError("invalid branch")
         repo_url = "/".join(quote(part, safe="") for part in repository.split("/"))
@@ -55,7 +57,7 @@ class GitHubContentsClient:
         except HTTPError as exc:
             # Only HTTP 404 while READING is a valid "new project" signal.
             if method == "GET" and exc.code == 404:
-                raise FileNotFoundError("GitHub project state not found") from None
+                raise FileNotFoundError("DIS project file not found") from None
             # Do not disclose the private API error body or any credentials.
             raise RuntimeError("GitHub Contents HTTP status " + str(exc.code)) from None
         except URLError as exc:
@@ -78,7 +80,8 @@ class GitHubContentsClient:
         if not isinstance(content, str) or not expected_blob_sha:
             raise ValueError("UTF-8 content and expected blob SHA required")
         payload = {
-            "message": "dis(state): update verified project checkpoint",
+            "message": ("dis(pilot): append monitored event" if path == PILOT_MONITOR_PATH
+                        else "dis(state): update verified project checkpoint"),
             "content": base64.b64encode(content.encode("utf-8")).decode("ascii"),
             "sha": expected_blob_sha,
             "branch": branch,
@@ -90,11 +93,12 @@ class GitHubContentsClient:
         return {"commit": result["sha"]}
 
     def create(self, repository, path, branch, content):
-        """Create only the initial project state. Never overwrite an existing file."""
+        """Create only the initial DIS state/monitor. Never overwrite existing files."""
         if not isinstance(content, str):
             raise ValueError("UTF-8 content required")
         payload = {
-            "message": "dis(state): initialize project",
+            "message": ("dis(pilot): initialize consented monitor" if path == PILOT_MONITOR_PATH
+                        else "dis(state): initialize project"),
             "content": base64.b64encode(content.encode("utf-8")).decode("ascii"),
             "branch": branch,
         }
