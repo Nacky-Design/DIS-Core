@@ -14,6 +14,10 @@ Test whether an operator without professional design training can move from a cl
 - [ ] Next Move Theory skills are present and rights clarified for intended test, OR NMT use excluded with `NMT_NOT_CONNECTED` stated.
 - [ ] DIS Core PUBLIC extraction audited for client materials, licenses and Git history; until then share only appropriately authorized access to private DIS repo.
 
+## Optional privacy-minimized Pilot Monitor
+
+[DIS Pilot Monitor v0.1](../docs/pilot-monitor-v0.1.md) records route, stage changes, issues, attempted fixes and reported outcomes in the novice's **private** GitHub project, with their explicit consent and a working write connection. It does not record chat transcripts, screen or typed keystrokes. Distinguish `agent_reported` fixes from externally verified results and report `NOT_CONNECTED` when instrumentation is absent. Do not treat lack of consent as a novice failure.
+
 ## Test task preparation
 Create one synthetic, realistic client brief including: brand name, product and target customer, 3–5 factual details, an uncertain market claim, explicit design goal, mobile needs, and 2–3 optionally supplied reference URLs. Do not artificially give the user a perfect solution. Keep a single version/hash of inputs for comparison.
 
